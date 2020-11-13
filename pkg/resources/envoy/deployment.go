@@ -19,11 +19,12 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/banzaicloud/kafka-operator/api/v1beta1"
 	"github.com/banzaicloud/kafka-operator/pkg/resources/templates"
 	"github.com/banzaicloud/kafka-operator/pkg/util"
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -58,15 +59,15 @@ func (r *Reconciler) deployment(log logr.Logger, extListener v1beta1.ExternalLis
 	return &appsv1.Deployment{
 		ObjectMeta: templates.ObjectMeta(
 			fmt.Sprintf(envoyDeploymentName, extListener.Name, r.KafkaCluster.GetName()),
-			labelSelector, r.KafkaCluster),
+			labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name), r.KafkaCluster),
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labelSelector,
+				MatchLabels: labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
 			},
 			Replicas: util.Int32Pointer(r.KafkaCluster.Spec.EnvoyConfig.GetReplicas()),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      labelSelector,
+					Labels:      labelsForEnvoyIngress(r.KafkaCluster.GetName(), extListener.Name),
 					Annotations: generatePodAnnotations(r.KafkaCluster, extListener, log),
 				},
 				Spec: corev1.PodSpec{
